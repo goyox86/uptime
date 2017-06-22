@@ -1,0 +1,9 @@
+[package]
+name = "uptime"
+version = "0.1.0"
+authors = ["Jose Narvaez <goyox86@gmail.com>"]
+
+[dependencies]
+libc = "0.2"
+clap = "2.24.2"
+redox_syscall = "0.1.18"
