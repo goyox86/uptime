@@ -8,11 +8,12 @@ extern crate extra;
 extern crate clap;
 extern crate libc;
 
-use std::io::{self, Write};
+use std::io::{self, Write, Read};
 use std::process::exit;
 use std::fmt::Write as FmtWrite;
 use std::mem;
 use std::ptr;
+use std::fs::File;
 use std::time::{SystemTime, UNIX_EPOCH};
 use clap::{Arg, App};
 
@@ -55,10 +56,10 @@ fn main() {
         stdout.flush().unwrap();
         exit(0);
     }
-    
+
     let mut uptime_str = String::new();
-    
-    let uptime = get_uptime();
+
+    let uptime = get_uptime().unwrap();
     let uptime_secs = uptime % 60;
     let uptime_mins = (uptime / SECONDS_PER_MINUTE) % 60;
     let uptime_hours = (uptime / SECONDS_PER_HOUR) % 24;
@@ -87,35 +88,42 @@ fn main() {
 }
 
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
-fn get_uptime() -> u64 {
+fn get_uptime() -> Result<u64, &'static str> {
     let request = &mut [libc::CTL_KERN, libc::KERN_BOOTTIME] as *mut _ as *mut i32;
     let mut uptime = libc::timeval { tv_sec: 0 , tv_usec: 0 };
     let uptime_ptr: *mut libc::c_void = &mut uptime as *mut _ as *mut libc::c_void;
     let mut uptime_len = &mut (mem::size_of::<libc::timeval>() as libc::size_t);
 
-    unsafe { libc::sysctl(request, 2, uptime_ptr, uptime_len, ptr::null_mut(), 0) };
+    let syscall_result = unsafe { libc::sysctl(request, 2, uptime_ptr, uptime_len, ptr::null_mut(), 0) };
 
-    now() - uptime.tv_sec as u64
+    if syscall_result == -1 {
+        Err("there was an error getting the uptime")
+    } else {
+        Ok(now() - uptime.tv_sec as u64)
+    }
+
 }
 
 #[cfg(target_os = "redox")]
-fn get_uptime() -> u64 {
+fn get_uptime() -> Result<u64, &'static str> {
     let mut ts = syscall::TimeSpec::default();
     syscall::clock_gettime(syscall::CLOCK_MONOTONIC, &mut ts).unwrap();
-    
-    ts.tv_sec
+
+    Ok(ts.tv_sec)
 }
 
 #[cfg(target_os = "linux")]
-fn get_uptime() -> u64 {
+fn get_uptime() -> Result<u64, &'static str> {
     let mut proc_uptime = String::new();
 
     if let Some(n) =
         File::open("/proc/uptime").ok()
             .and_then(|mut f| f.read_to_string(&mut proc_uptime).ok())
             .and_then(|_| proc_uptime.split_whitespace().next())
-            .and_then(|s| s.replace(".", "").parse().ok()) {
-                n
+            .and_then(|s| s.parse::<f64>().ok()) {
+                Ok(n as u64)
+            } else {
+                Err("there was an error getting the uptime")
             }
 }
 
