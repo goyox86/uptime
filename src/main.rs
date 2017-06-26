@@ -2,8 +2,6 @@
 
 #[cfg(target_os = "redox")]
 extern crate syscall;
-#[cfg(target_os = "redox")]
-extern crate extra;
 
 extern crate clap;
 extern crate libc;
@@ -11,8 +9,6 @@ extern crate libc;
 use std::io::{self, Write, Read};
 use std::process::exit;
 use std::fmt::Write as FmtWrite;
-use std::mem;
-use std::ptr;
 use std::fs::File;
 use std::time::{SystemTime, UNIX_EPOCH};
 use clap::{Arg, App};
@@ -106,10 +102,12 @@ fn get_uptime() -> Result<u64, &'static str> {
 
 #[cfg(target_os = "redox")]
 fn get_uptime() -> Result<u64, &'static str> {
-    let mut ts = syscall::TimeSpec::default();
-    syscall::clock_gettime(syscall::CLOCK_MONOTONIC, &mut ts).unwrap();
+   let mut ts = syscall::TimeSpec::default();
 
-    Ok(ts.tv_sec)
+   match syscall::clock_gettime(syscall::CLOCK_MONOTONIC, &mut ts) {
+       Ok(_) => Ok(ts.tv_sec as u64),
+       Err(_) => Err("there was an error getting the uptime")
+   }
 }
 
 #[cfg(target_os = "linux")]
