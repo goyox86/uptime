@@ -104,9 +104,10 @@ fn get_uptime() -> Result<u64, &'static str> {
 fn get_uptime() -> Result<u64, &'static str> {
    let mut ts = syscall::TimeSpec::default();
 
-   match syscall::clock_gettime(syscall::CLOCK_MONOTONIC, &mut ts) {
-       Ok(_) => Ok(ts.tv_sec as u64),
-       Err(_) => Err("there was an error getting the uptime")
+   if syscall::clock_gettime(syscall::CLOCK_MONOTONIC, &mut ts).is_ok() {
+       Ok(ts.tv_sec as u64)
+   } else {
+       Err("there was an error getting the uptime")
    }
 }
 
