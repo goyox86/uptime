@@ -9,10 +9,13 @@ extern crate libc;
 
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 use std::{mem, ptr};
-use std::io::{self, Write, Read};
+#[cfg(target_os = "linux")]
+use std::fs::File;
+#[cfg(target_os = "linux")]
+use std::io::Read;
+use std::io::{self, Write};
 use std::process::exit;
 use std::fmt::Write as FmtWrite;
-use std::fs::File;
 use std::time::{SystemTime, UNIX_EPOCH};
 use clap::{Arg, App};
 
