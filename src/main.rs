@@ -6,6 +6,9 @@ extern crate syscall;
 extern crate clap;
 extern crate libc;
 
+
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+use std::{mem, ptr};
 use std::io::{self, Write, Read};
 use std::process::exit;
 use std::fmt::Write as FmtWrite;
@@ -63,16 +66,16 @@ fn main() {
 
     let fmt_result;
     if uptime_days > 0 {
-        fmt_result = write!(&mut uptime_str, "{}d {}h {}m {}s", uptime_days,
+        fmt_result = write!(&mut uptime_str, "{}d {}h {}m {}s\n", uptime_days,
                             uptime_hours, uptime_mins, uptime_secs);
     } else if uptime_hours > 0 {
-        fmt_result = write!(&mut uptime_str, "{}h {}m {}s", uptime_hours,
+        fmt_result = write!(&mut uptime_str, "{}h {}m {}s\n", uptime_hours,
                             uptime_mins, uptime_secs);
     } else if uptime_mins > 0 {
-        fmt_result = write!(&mut uptime_str, "{}m {}s", uptime_mins,
+        fmt_result = write!(&mut uptime_str, "{}m {}s\n", uptime_mins,
                             uptime_secs);
     } else {
-        fmt_result = write!(&mut uptime_str, "{}s", uptime_secs);
+        fmt_result = write!(&mut uptime_str, "{}s\n", uptime_secs);
     }
 
     if fmt_result.is_err() {
